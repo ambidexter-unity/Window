@@ -9,7 +9,7 @@
     "com.neuecc.unirx": "6.2.2",
     "com.demigiant.dotween" : "1.2.23",
     "io.ambidexter.extensions": "https://github.com/ambidexter-unity/Extensions.git#1.0.0",
-    "io.ambidexter.audioManager": "https://github.com/ambidexter-unity/AudioManager.git#1.0.0",
+    "io.ambidexter.audiomanager": "https://github.com/ambidexter-unity/AudioManager.git#1.0.0",
     "io.ambidexter.locale": "https://github.com/ambidexter-unity/Locale.git#1.0.0",
     "io.ambidexter.gameservice": "https://github.com/ambidexter-unity/GameService.git#1.0.0",
     "io.ambidexter.gametask": "https://github.com/ambidexter-unity/GameTask.git#1.0.0",
