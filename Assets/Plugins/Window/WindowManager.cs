@@ -15,21 +15,11 @@ using Extensions;
 
 namespace Common.Window
 {
-	[Serializable]
-	public enum WindowType
-	{
-		Settings,
-		HogLockScreen,
-		NewCollection,
-		Collections,
-		AssembleCollection
-	}
-
 	// ReSharper disable InconsistentNaming
 	[Serializable]
 	public class WindowManagerWindowsListItem
 	{
-		public WindowType Type;
+		public string Type;
 		public GameObject Prefab;
 	}
 	// ReSharper restore InconsistentNaming
@@ -39,7 +29,7 @@ namespace Common.Window
 		private struct DelayCall : IComparable<DelayCall>
 		{
 			public Action<IWindow> Callback;
-			public WindowType Type;
+			public string Type;
 			public object[] Args;
 			public bool IsModal;
 			public bool IsUnique;
@@ -81,7 +71,7 @@ namespace Common.Window
 
 		// IWindowManager
 
-		public bool ShowWindow(Action<IWindow> callback, WindowType type, object[] args = null,
+		public bool ShowWindow(Action<IWindow> callback, string type, object[] args = null,
 			bool isModal = true, bool isUnique = false)
 		{
 			if (_isUnique || isUnique && _openedWindows.Count > 0)
@@ -105,7 +95,7 @@ namespace Common.Window
 			var instance = (window as MonoBehaviour)?.gameObject;
 			if (instance == null)
 			{
-				throw new NotSupportedException($"Prefab for window {typeof(WindowType).GetEnumName(type)} has no" +
+				throw new NotSupportedException($"Prefab for window {type} has no" +
 				                                " controller, that implements IWindow.");
 			}
 
