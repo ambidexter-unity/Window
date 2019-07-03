@@ -21,7 +21,7 @@ namespace Common.Window
 		/// <param name="isModal">Признак того, что окно модальное.</param>
 		/// <param name="isUnique">Признак того, что окно отображается эксклюзивно.</param>
 		/// <returns>Возвращает <code>true</code>, если окно может быть успешно создано.</returns>
-		bool ShowWindow(Action<IWindow> callback, WindowType type, object[] args = null,
+		bool ShowWindow(Action<IWindow> callback, string type, object[] args = null,
 			bool isModal = true, bool isUnique = false);
 
 		/// <summary>
