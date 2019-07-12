@@ -72,7 +72,7 @@ namespace Common.Window
 		// IWindowManager
 
 		public bool ShowWindow(Action<IWindow> callback, string type, object[] args = null,
-			bool isModal = true, bool isUnique = false)
+			bool isModal = true, bool isUnique = false, DiContainer container = null)
 		{
 			if (_isUnique || isUnique && _openedWindows.Count > 0)
 			{
@@ -90,13 +90,18 @@ namespace Common.Window
 
 			var prefab = _windows.Single(item => item.Type == type).Prefab;
 			var blend = isModal ? CreateModalBlend() : null;
-			var window = Container.InstantiatePrefabForComponent<IWindow>(prefab,
-				blend != null ? blend : FindOrCreatePopupCanvas(), args ?? new object[0]);
+			var window = (container ?? Container).InstantiatePrefabForComponent<IWindow>(prefab,
+				blend != null ? blend : FindOrCreatePopupCanvas());
 			var instance = (window as MonoBehaviour)?.gameObject;
 			if (instance == null)
 			{
 				throw new NotSupportedException($"Prefab for window {type} has no" +
 				                                " controller, that implements IWindow.");
+			}
+
+			if (args != null && args.Length > 0)
+			{
+				window.SetArgs(args);
 			}
 
 			_isUnique = isUnique;

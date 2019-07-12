@@ -9,5 +9,11 @@ namespace Common.Window
 		/// Событие закрытия окна.
 		/// </summary>
 		UnityEvent CloseEvent { get; }
+
+		/// <summary>
+		/// В этот метод передаются аргументы, полученные при вызове метода ShowWindow() WindowManager-а.
+		/// </summary>
+		/// <param name="args">Список аргументов.</param>
+		void SetArgs(object[] args);
 	}
 }
