@@ -8,21 +8,22 @@ namespace Common.Window.Controller
 {
 	[DisallowMultipleComponent]
 	[RequireComponent(typeof(RectTransform), typeof(CanvasGroup))]
-	public class PopupControllerBase : MonoBehaviour, IWindow
+	public abstract class PopupControllerBase : MonoBehaviour, IWindow
 	{
 		protected readonly ReactiveProperty<ActivatableState> _activatableState =
 			new ReactiveProperty<ActivatableState>(Activatable.ActivatableState.Inactive);
+
 		protected readonly UnityEvent _closeEvent = new UnityEvent();
 
 		// IWindow
-		
+
 		public IReadOnlyReactiveProperty<ActivatableState> ActivatableState => _activatableState;
 		public UnityEvent CloseEvent => _closeEvent;
 
 		public virtual void Activate(bool immediately = false)
 		{
 			if (this.IsActive()) return;
-			
+
 			var canvasGroup = GetComponent<CanvasGroup>();
 			var rectTransform = (RectTransform) transform;
 
@@ -58,7 +59,7 @@ namespace Common.Window.Controller
 		public virtual void Deactivate(bool immediately = false)
 		{
 			if (this.IsInactive()) return;
-			
+
 			var canvasGroup = GetComponent<CanvasGroup>();
 			var rectTransform = (RectTransform) transform;
 
@@ -69,7 +70,7 @@ namespace Common.Window.Controller
 			}
 
 			canvasGroup.interactable = false;
-			
+
 			if (immediately)
 			{
 				canvasGroup.alpha = 0;
@@ -89,8 +90,15 @@ namespace Common.Window.Controller
 					});
 			}
 		}
-		
+
+		void IWindow.SetArgs(object[] args)
+		{
+			DoSetArgs(args);
+		}
+
 		// \IWindow
+
+		protected abstract void DoSetArgs(object[] args);
 
 		// ReSharper disable once UnusedMember.Global
 		protected virtual void OnModalBlendClick()
@@ -101,7 +109,7 @@ namespace Common.Window.Controller
 		protected virtual void Start()
 		{
 			if (this.IsActive()) return;
-			
+
 			var canvasGroup = GetComponent<CanvasGroup>();
 			var rectTransform = (RectTransform) transform;
 
@@ -113,9 +121,9 @@ namespace Common.Window.Controller
 		protected virtual void OnDestroy()
 		{
 			_closeEvent.RemoveAllListeners();
-			
+
 			if (!this.IsBusy()) return;
-			
+
 			var canvasGroup = GetComponent<CanvasGroup>();
 			var rectTransform = (RectTransform) transform;
 

@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using Zenject;
 
 namespace Common.Window
 {
@@ -20,9 +21,10 @@ namespace Common.Window
 		/// <param name="args">Дополнительные аргументы, которые будут переданы окну в момент создания.</param>
 		/// <param name="isModal">Признак того, что окно модальное.</param>
 		/// <param name="isUnique">Признак того, что окно отображается эксклюзивно.</param>
+		/// <param name="container">Контейнер, из которого инжектится окно при создании.</param>
 		/// <returns>Возвращает <code>true</code>, если окно может быть успешно создано.</returns>
 		bool ShowWindow(Action<IWindow> callback, string type, object[] args = null,
-			bool isModal = true, bool isUnique = false);
+			bool isModal = true, bool isUnique = false, DiContainer container = null);
 
 		/// <summary>
 		/// Принудительно закрывает окно, ранее открытое с помощью ShowWindow.
