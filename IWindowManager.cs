@@ -1,4 +1,5 @@
 using System;
+using UniRx;
 using UnityEngine;
 using Zenject;
 
@@ -8,9 +9,8 @@ namespace Common.Window
 	{
 		// Целевое разрешение экрана.
 		public static readonly Vector2 TargetDestination = new Vector2(1024f, 768f);
-
 	}
-	
+
 	public interface IWindowManager
 	{
 		/// <summary>
@@ -37,5 +37,31 @@ namespace Common.Window
 		/// </summary>
 		/// <param name="args">Список типов закрываемых окон.</param>
 		void CloseAll(params Type[] args);
+
+		/// <summary>
+		/// Возвращает количество открытых на текущий момент окон.
+		/// </summary>
+		/// <returns>Количество открытых окон.</returns>
+		int GetOpenedWindowsCount();
+
+		/// <summary>
+		/// Возвращает количество открытых на текущий момент окон указанного типа.
+		/// </summary>
+		/// <typeparam name="T">Тип контроллера окна.</typeparam>
+		/// <returns>Количество открытых окон указанного типа.</returns>
+		int GetOpenedWindowsCount<T>() where T : IWindow;
+
+		/// <summary>
+		/// Возвращает реактивное свойство, отражающее количество открытых окон.
+		/// </summary>
+		/// <returns>Реактивное свойство, отражающее количество открытых окон.</returns>
+		IReadOnlyReactiveProperty<int> GetOpenedWindowsCountObservable();
+
+		/// <summary>
+		/// Возвращает реактивное сврйоство, отражающее количество открытых окон указанного типа.
+		/// </summary>
+		/// <typeparam name="T">Тип контроллера окна.</typeparam>
+		/// <returns>Реактивное свойтство, отражающее количество открытых окон указанного типа.</returns>
+		IReadOnlyReactiveProperty<int> GetOpenedWindowsCountObservable<T>() where T : IWindow;
 	}
 }

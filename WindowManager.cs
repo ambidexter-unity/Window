@@ -48,10 +48,15 @@ namespace Common.Window
 		[SerializeField] private WindowManagerWindowsListItem[] _windows = new WindowManagerWindowsListItem[0];
 
 		private readonly Dictionary<IWindow, UnityAction> _closeHandlers = new Dictionary<IWindow, UnityAction>();
-		private readonly List<IWindow> _openedWindows = new List<IWindow>();
+		private readonly ReactiveCollection<IWindow> _openedWindows = new ReactiveCollection<IWindow>();
 
 		private readonly SortedSet<DelayCall> _delayedCalls = new SortedSet<DelayCall>();
 		private bool _isUnique;
+
+		private IReadOnlyReactiveProperty<int> _windowsCountObservable;
+
+		private readonly Dictionary<Type, IReadOnlyReactiveProperty<int>> _countObservables =
+			new Dictionary<Type, IReadOnlyReactiveProperty<int>>();
 
 #if UNITY_EDITOR
 		private const string ManagerPath = "Assets/Scripts/Common/Manager";
@@ -184,6 +189,34 @@ namespace Common.Window
 			{
 				_openedWindows.ToList().ForEach(CloseWindow);
 			}
+		}
+
+		public int GetOpenedWindowsCount()
+		{
+			return _openedWindows.Count;
+		}
+
+		public int GetOpenedWindowsCount<T>() where T : IWindow
+		{
+			return _openedWindows.Count(window => window is T);
+		}
+
+		public IReadOnlyReactiveProperty<int> GetOpenedWindowsCountObservable()
+		{
+			return _windowsCountObservable ?? (_windowsCountObservable =
+				       _openedWindows.ObserveCountChanged().ToReadOnlyReactiveProperty(GetOpenedWindowsCount()));
+		}
+
+		public IReadOnlyReactiveProperty<int> GetOpenedWindowsCountObservable<T>() where T : IWindow
+		{
+			if (!_countObservables.TryGetValue(typeof(T), out var observable))
+			{
+				observable = _openedWindows.ObserveCountChanged().Select(i => GetOpenedWindowsCount<T>())
+					.DistinctUntilChanged().ToReadOnlyReactiveProperty(GetOpenedWindowsCount<T>());
+				_countObservables.Add(typeof(T), observable);
+			}
+
+			return observable;
 		}
 
 		// \IWindowManager
