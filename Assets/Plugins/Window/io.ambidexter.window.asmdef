@@ -1,13 +1,8 @@
 {
     "name": "io.ambidexter.window",
     "references": [
-        "GUID:560b04d1a97f54a4e82edc0cbbb69285",
-        "GUID:0d8beb7f090555447a6cf5ce9e54dbb4",
-        "GUID:bc2bbdb10f84641ee8cbf977b8a446cb",
-        "GUID:495aff0cd23bc430a8e1c1a3a0c68c3e",
-        "GUID:59a7c96d6c0604ae3a752fb78790b5ec",
         "GUID:628b72d57a96c4919812bed364dcce0b",
-        "GUID:6586bc2cf0c551d40b0b3ac1945c880e"
+        "GUID:6ef204af4b591417786dc173dafecfbd"
     ],
     "optionalUnityReferences": [],
     "includePlatforms": [],

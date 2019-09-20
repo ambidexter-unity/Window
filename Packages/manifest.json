@@ -1,8 +1,7 @@
 {
   "dependencies": {
+    "com.demigiant.dotween": "1.2.23",
     "com.modesttree.zenject": "8.0.0",
-    "com.neuecc.unirx": "6.2.2",
-    "com.demigiant.dotween" : "1.2.23",
     "com.unity.ads": "2.0.8",
     "com.unity.analytics": "3.3.2",
     "com.unity.collab-proxy": "1.2.16",
@@ -10,12 +9,8 @@
     "com.unity.purchasing": "2.0.6",
     "com.unity.textmeshpro": "2.0.1",
     "com.unity.timeline": "1.0.0",
-    "io.ambidexter.activatable": "https://github.com/ambidexter-unity/Activatable.git#1.0.0",
-    "io.ambidexter.audiomanager": "https://github.com/ambidexter-unity/AudioManager.git#1.0.0",
-    "io.ambidexter.extensions": "https://github.com/ambidexter-unity/Extensions.git#1.0.0",
-    "io.ambidexter.gameservice": "https://github.com/ambidexter-unity/GameService.git#1.0.0",
-    "io.ambidexter.gametask": "https://github.com/ambidexter-unity/GameTask.git#1.0.0",
-    "io.ambidexter.locale": "https://github.com/ambidexter-unity/Locale.git#1.0.0",
+    "io.ambidexter.activatable": "https://github.com/ambidexter-unity/Activatable.git#2.0.0",
+    "io.ambidexter.touchhelper": "https://github.com/ambidexter-unity/TouchHelper.git#1.1.0",
     "com.unity.modules.ai": "1.0.0",
     "com.unity.modules.animation": "1.0.0",
     "com.unity.modules.assetbundle": "1.0.0",
@@ -64,29 +59,13 @@
     }
   ],
   "lock": {
-    "io.ambidexter.audiomanager": {
-      "hash": "dc71bde5b28d8bb5b3e689358569461527bc35ac",
-      "revision": "1.0.0"
-    },
-    "io.ambidexter.extensions": {
-      "hash": "55a8d9e412bab2a432e2902abc88f5ae17ed9ed7",
-      "revision": "1.0.0"
-    },
-    "io.ambidexter.gameservice": {
-      "hash": "56722e985f539f38be8b3cbbb374c15cd9b5e417",
-      "revision": "1.0.0"
-    },
-    "io.ambidexter.gametask": {
-      "hash": "85e2b9447ba9561a24beba74a9b4dc38fce7f60b",
-      "revision": "1.0.0"
-    },
-    "io.ambidexter.locale": {
-      "hash": "56b81c2eac7ed9af0fa47a438e78ca487c3a808c",
-      "revision": "1.0.0"
-    },
     "io.ambidexter.activatable": {
-      "hash": "64ffb38731bed6bf93ec5b0614dfedec95bb8b22",
-      "revision": "1.0.0"
+      "hash": "ca066102626f45f0694c96ec0f2b025ca77d4fac",
+      "revision": "2.0.0"
+    },
+    "io.ambidexter.touchhelper": {
+      "hash": "f12f5d88c02a0cf9da344d14f231d7cd7b57ad50",
+      "revision": "1.1.0"
     }
   }
 }
