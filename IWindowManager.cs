@@ -1,67 +1,54 @@
-using System;
-using UniRx;
-using UnityEngine;
-using Zenject;
-
-namespace Common.Window
+// ReSharper disable once CheckNamespace
+namespace Common.WindowManager
 {
-	public static class WindowConst
-	{
-		// Целевое разрешение экрана.
-		public static readonly Vector2 TargetDestination = new Vector2(1024f, 768f);
-	}
+	public delegate void WindowOpenedHandler(IWindow window);
+
+	public delegate void WindowClosedHandler(IWindowResult result);
 
 	public interface IWindowManager
 	{
 		/// <summary>
-		/// Показать окно.
+		/// Открыть окно.
 		/// </summary>
-		/// <param name="callback">Коллбек, в который будет возвращен медиатор вновь созданного окна.</param>
-		/// <param name="type">Тип создаваемого окна.</param>
-		/// <param name="args">Дополнительные аргументы, которые будут переданы окну в момент создания.</param>
-		/// <param name="isModal">Признак того, что окно модальное.</param>
-		/// <param name="isUnique">Признак того, что окно отображается эксклюзивно.</param>
-		/// <param name="container">Контейнер, из которого инжектится окно при создании.</param>
-		/// <returns>Возвращает <code>true</code>, если окно может быть успешно создано.</returns>
-		bool ShowWindow(Action<IWindow> callback, string type, object[] args = null,
-			bool isModal = true, bool isUnique = false, DiContainer container = null);
+		/// <param name="windowId">Идентификатор открываемого окна.</param>
+		/// <param name="args">Аргументы, передаваемые окну при открытии.</param>
+		/// <param name="isUnique">Флаг, указывающий на то, что окно должно быть показано эксклюзивно.</param>
+		/// <param name="overlap">Флаг, указывающий на то, что на время показа окна,
+		/// предыдущее окно должно быть скрыто.</param>
+		/// <returns>Возвращает ссылку на экземпляр созданного окна, или <code>null</code>,
+		/// если создание окна невозможно.</returns>
+		IWindow ShowWindow(string windowId, object[] args = null, bool isUnique = false, bool overlap = false);
 
 		/// <summary>
-		/// Принудительно закрывает окно, ранее открытое с помощью ShowWindow.
+		/// Закрыть все окна указанного типа.
 		/// </summary>
-		/// <param name="window">Медиатор окна, полученный из ShowWindow.</param>
-		void CloseWindow(IWindow window);
+		/// <param name="args">В качестве аргументов могут выступать классы закрываемых окон
+		/// или их идентификаторы.</param>
+		/// <returns>Возвращает количество закрытых окон.</returns>
+		int CloseAll(params object[] args);
 
 		/// <summary>
-		/// Принудительно закрыть все окна указанных типов.
+		/// Получить окно указанного типа.
 		/// </summary>
-		/// <param name="args">Список типов закрываемых окон.</param>
-		void CloseAll(params Type[] args);
+		/// <param name="arg">В качестве аргумента может выступать класс окна, или его идентификатор.</param>
+		/// <returns>Возвращает первое окно указанного типа или с указанным идентификатором.</returns>
+		IWindow GetWindow(object arg);
 
 		/// <summary>
-		/// Возвращает количество открытых на текущий момент окон.
+		/// Получить все окна указанного типа.
 		/// </summary>
-		/// <returns>Количество открытых окон.</returns>
-		int GetOpenedWindowsCount();
+		/// <param name="args">В качестве аргументов могут выступать классы окон или их идентификаторы.</param>
+		/// <returns></returns>
+		IWindow[] GetWindows(params object[] args);
 
 		/// <summary>
-		/// Возвращает количество открытых на текущий момент окон указанного типа.
+		/// Событие, возникающее при открытии нового окна.
 		/// </summary>
-		/// <typeparam name="T">Тип контроллера окна.</typeparam>
-		/// <returns>Количество открытых окон указанного типа.</returns>
-		int GetOpenedWindowsCount<T>() where T : IWindow;
+		event WindowOpenedHandler WindowOpenedEvent;
 
 		/// <summary>
-		/// Возвращает реактивное свойство, отражающее количество открытых окон.
+		/// Событие, возникающее при закрытии окна методом IWindow.Close().
 		/// </summary>
-		/// <returns>Реактивное свойство, отражающее количество открытых окон.</returns>
-		IReadOnlyReactiveProperty<int> GetOpenedWindowsCountObservable();
-
-		/// <summary>
-		/// Возвращает реактивное сврйоство, отражающее количество открытых окон указанного типа.
-		/// </summary>
-		/// <typeparam name="T">Тип контроллера окна.</typeparam>
-		/// <returns>Реактивное свойтство, отражающее количество открытых окон указанного типа.</returns>
-		IReadOnlyReactiveProperty<int> GetOpenedWindowsCountObservable<T>() where T : IWindow;
+		event WindowClosedHandler WindowClosedEvent;
 	}
 }

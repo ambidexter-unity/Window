@@ -1,264 +1,290 @@
 #if UNITY_EDITOR
+using System.IO;
 using UnityEditor;
 #endif
 using System;
-using Zenject;
-using UnityEngine;
-using UnityEngine.Events;
-using UnityEngine.UI;
-using UniRx;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using Common.Activatable;
-using Extensions;
+using UnityEngine;
+using UnityEngine.Assertions;
+using UnityEngine.Events;
 
-
-namespace Common.Window
+// ReSharper disable once CheckNamespace
+namespace Common.WindowManager
 {
-	// ReSharper disable InconsistentNaming
-	[Serializable]
-	public class WindowManagerWindowsListItem
+	/// <summary>
+	/// Вспомогательный компонент, вешается на текущую сцену, если есть отложенные окна, чтобы корректно
+	/// удалять их в случае, если сцена закрывается до того, как будут активированы и закрыты отложенные окна.
+	/// </summary>
+	[DisallowMultipleComponent]
+	public class WindowManagerLocalSceneHelper : MonoBehaviour
 	{
-		public string Type;
-		public GameObject Prefab;
-	}
-	// ReSharper restore InconsistentNaming
+		public UnityEvent DestroyEvent { get; } = new UnityEvent();
 
-	public class WindowManager : ScriptableObjectInstaller<WindowManager>, IWindowManager
-	{
-		private struct DelayCall : IComparable<DelayCall>
+		private void OnDestroy()
 		{
-			public Action<IWindow> Callback;
-			public string Type;
-			public object[] Args;
-			public bool IsModal;
-			public bool IsUnique;
-			public long Timestamp;
+			DestroyEvent.Invoke();
+			DestroyEvent.RemoveAllListeners();
+		}
+	}
 
-			public int CompareTo(DelayCall other)
+	[DisallowMultipleComponent]
+	public abstract class WindowManagerBase : MonoBehaviour, IWindowManager
+	{
+		private struct DelayedWindow : IComparable<DelayedWindow>
+		{
+			private readonly long _timestamp;
+
+			public DelayedWindow(IWindow window, bool isUnique, bool overlap)
+			{
+				Window = window;
+				IsUnique = isUnique;
+				Overlap = overlap;
+				_timestamp = DateTime.Now.Ticks;
+			}
+
+			public IWindow Window { get; }
+			public bool IsUnique { get; }
+			public bool Overlap { get; }
+
+			public int CompareTo(DelayedWindow other)
 			{
 				if (other.IsUnique && !IsUnique) return 1;
 				if (!other.IsUnique && IsUnique) return -1;
-				if (Timestamp > other.Timestamp) return 1;
-				if (Timestamp < other.Timestamp) return -1;
+				if (_timestamp > other._timestamp) return 1;
+				if (_timestamp < other._timestamp) return -1;
 				return 0;
 			}
 		}
 
-		[SerializeField] private WindowManagerWindowsListItem[] _windows = new WindowManagerWindowsListItem[0];
+		private Dictionary<string, Window> _windowsMap = new Dictionary<string, Window>();
 
-		private readonly Dictionary<IWindow, UnityAction> _closeHandlers = new Dictionary<IWindow, UnityAction>();
-		private readonly ReactiveCollection<IWindow> _openedWindows = new ReactiveCollection<IWindow>();
-
-		private readonly SortedSet<DelayCall> _delayedCalls = new SortedSet<DelayCall>();
+		private readonly List<IWindow> _openedWindows = new List<IWindow>();
+		private readonly SortedSet<DelayedWindow> _delayedWindows = new SortedSet<DelayedWindow>();
 		private bool _isUnique;
 
-		private IReadOnlyReactiveProperty<int> _windowsCountObservable;
+		private WindowManagerLocalSceneHelper _sceneHelper;
 
-		private readonly Dictionary<Type, IReadOnlyReactiveProperty<int>> _countObservables =
-			new Dictionary<Type, IReadOnlyReactiveProperty<int>>();
+#pragma warning disable 649
+		[SerializeField] private Window[] _windows = new Window[0];
+#pragma warning restore 649
 
-#if UNITY_EDITOR
-		private const string ManagerPath = "Assets/Scripts/Common/Manager";
+		protected abstract int StartCanvasSortingOrder { get; }
 
-		[MenuItem("Tools/Game Settings/Window Manager Settings")]
-		private static void GetAndSelectSettingsInstance()
+		protected virtual void Awake()
 		{
-			EditorUtility.FocusProjectWindow();
-			Selection.activeObject = InspectorExtensions.FindOrCreateNewScriptableObject<WindowManager>(ManagerPath);
-		}
-#endif
-
-		public override void InstallBindings()
-		{
-			Container.Bind<IWindowManager>().FromInstance(this).AsSingle();
+			_windowsMap = _windows.ToDictionary(window => window.WindowId, window => window);
 		}
 
-		// IWindowManager
+		public event WindowOpenedHandler WindowOpenedEvent;
 
-		public bool ShowWindow(Action<IWindow> callback, string type, object[] args = null,
-			bool isModal = true, bool isUnique = false, DiContainer container = null)
+		public event WindowClosedHandler WindowClosedEvent;
+
+		public int CloseAll(params object[] args)
 		{
-			if (_isUnique || isUnique && _openedWindows.Count > 0)
+			var windows = GetWindows(args);
+			foreach (var window in windows)
 			{
-				_delayedCalls.Add(new DelayCall
-				{
-					Callback = callback,
-					Type = type,
-					Args = args,
-					IsModal = isModal,
-					IsUnique = isUnique,
-					Timestamp = DateTime.Now.Ticks
-				});
-				return false;
+				window.Close(true);
 			}
 
-			var prefab = _windows.Single(item => item.Type == type).Prefab;
-			var blend = isModal ? CreateModalBlend() : null;
-			var window = (container ?? Container).InstantiatePrefabForComponent<IWindow>(prefab,
-				blend != null ? blend : FindOrCreatePopupCanvas());
-			var instance = (window as MonoBehaviour)?.gameObject;
-			if (instance == null)
-			{
-				throw new NotSupportedException($"Prefab for window {type} has no" +
-				                                " controller, that implements IWindow.");
-			}
-
-			if (args != null && args.Length > 0)
-			{
-				window.SetArgs(args);
-			}
-
-			_isUnique = isUnique;
-			ListenForCloseWindow(window);
-			_openedWindows.Add(window);
-
-			var activatable = (blend != null ? blend.gameObject : instance).GetComponent<IActivatable>();
-			activatable.Activate();
-
-			callback?.Invoke(window);
-			return true;
+			return windows.Length;
 		}
 
-		public void CloseWindow(IWindow window)
+		public IWindow GetWindow(object arg)
 		{
-			var blend = (window as MonoBehaviour)?.GetComponentInParent<ModalBlendController>();
-			// Если есть бленда, то отслеживать деактивацию и бленды и окна, если нет, то только окна
-			var isDeactivated = blend != null
-				? blend.ActivatableState.CombineLatest(window.ActivatableState,
-						(state1, state2) => state1 == ActivatableState.Inactive && state2 == ActivatableState.Inactive
-							? ActivatableState.Inactive
-							: ActivatableState.ToInactive)
-					.Select(state => state == ActivatableState.Inactive)
-					.ToReadOnlyReactiveProperty(
-						blend.ActivatableState.Value == ActivatableState.Inactive &&
-						window.ActivatableState.Value == ActivatableState.Inactive)
-				: window.ActivatableState.Select(state => state == ActivatableState.Inactive)
-					.ToReadOnlyReactiveProperty(window.ActivatableState.Value == ActivatableState.Inactive);
+			return GetWindows(arg).FirstOrDefault();
+		}
 
-			var o = (blend ? blend : window as MonoBehaviour)?.gameObject;
-			if (isDeactivated.Value)
+		public IWindow[] GetWindows(params object[] args)
+		{
+			var allWindows = new[] {_openedWindows, _delayedWindows.Select(delayed => delayed.Window)}
+				.SelectMany(enumerable => enumerable).ToArray();
+			if (args.Length <= 0)
 			{
-				if (o != null) Destroy(o);
-				isDeactivated.Dispose();
+				return allWindows;
 			}
-			else
+
+			HashSet<IWindow> windows = new HashSet<IWindow>();
+			foreach (var arg in args)
 			{
-				IDisposable d = null;
-				d = isDeactivated.Subscribe(value =>
+				switch (arg)
 				{
-					if (!value) return;
-					// ReSharper disable once AccessToModifiedClosure
-					d?.Dispose();
-					if (o != null) Destroy(o);
-					isDeactivated.Dispose();
-				});
-			}
-
-			UnityAction handler;
-			if (_closeHandlers.TryGetValue(window, out handler))
-			{
-				window.CloseEvent.RemoveListener(handler);
-				_closeHandlers.Remove(window);
-			}
-
-			_openedWindows.Remove(window);
-			_isUnique = false;
-
-			((IActivatable) blend ?? window).Deactivate();
-
-			while (_delayedCalls.Any() && !_isUnique)
-			{
-				var call = _delayedCalls.First();
-				_delayedCalls.Remove(call);
-				if (!ShowWindow(call.Callback, call.Type, call.Args, call.IsModal, call.IsUnique))
-				{
-					break;
+					case string stringArg:
+						windows.UnionWith(allWindows.Where(window => window.WindowId == stringArg));
+						break;
+					case Type typeArg:
+						if (!typeof(IWindow).IsAssignableFrom(typeArg))
+							throw new NotSupportedException("IWindow types supported only.");
+						windows.UnionWith(allWindows.Where(window => window.GetType() == typeArg));
+						break;
+					default:
+						throw new NotSupportedException("GetWindows() received unsupported argument. " +
+						                                "Strings WindowId and IWindow types supported only.");
 				}
 			}
+
+			return windows.ToArray();
 		}
 
-		public void CloseAll(params Type[] args)
+		public IWindow ShowWindow(string windowId, object[] args = null, bool isUnique = false, bool overlap = false)
 		{
-			if (args.Length > 0)
+			if (!_windowsMap.TryGetValue(windowId, out var prefab))
 			{
-				_openedWindows.Where(window => args.Contains(window.GetType()))
-					.ToList().ForEach(CloseWindow);
+				Debug.LogErrorFormat("Window with Id {0} isn't registered in Manager.", windowId);
+				return null;
+			}
+
+			if (!_sceneHelper)
+			{
+				_sceneHelper = new GameObject(@"WindowManagerLocalSceneHelper",
+						typeof(WindowManagerLocalSceneHelper))
+					.GetComponent<WindowManagerLocalSceneHelper>();
+				_sceneHelper.DestroyEvent.AddListener(OnDestroyScene);
+			}
+
+			var instance = Instantiate(prefab, Vector3.zero, Quaternion.identity);
+			instance.name = windowId;
+
+			var window = instance.GetComponent<IWindow>();
+			Assert.IsNotNull(window, "Window prefab must implements IWindow.");
+
+			InitWindow(window, args ?? new object[0]);
+
+			if (_isUnique || isUnique && _openedWindows.Count > 0)
+			{
+				window.Canvas.gameObject.SetActive(false);
+				_delayedWindows.Add(new DelayedWindow(window, isUnique, overlap));
 			}
 			else
 			{
-				_openedWindows.ToList().ForEach(CloseWindow);
+				DoApplyWindow(window, isUnique, overlap);
 			}
+
+			return window;
 		}
 
-		public int GetOpenedWindowsCount()
+		private void OnDestroyScene()
 		{
-			return _openedWindows.Count;
+			_delayedWindows.Clear();
+			_openedWindows.Clear();
+
+			_sceneHelper.DestroyEvent.RemoveListener(OnDestroyScene);
+			_sceneHelper = null;
 		}
 
-		public int GetOpenedWindowsCount<T>() where T : IWindow
+		private void DoApplyWindow(IWindow window, bool isUnique, bool overlap)
 		{
-			return _openedWindows.Count(window => window is T);
-		}
+			_isUnique = isUnique;
 
-		public IReadOnlyReactiveProperty<int> GetOpenedWindowsCountObservable()
-		{
-			return _windowsCountObservable ?? (_windowsCountObservable =
-				       _openedWindows.ObserveCountChanged().ToReadOnlyReactiveProperty(GetOpenedWindowsCount()));
-		}
+			window.CloseWindowEvent += OnCloseWindow;
+			window.DestroyWindowEvent += OnDestroyWindow;
 
-		public IReadOnlyReactiveProperty<int> GetOpenedWindowsCountObservable<T>() where T : IWindow
-		{
-			if (!_countObservables.TryGetValue(typeof(T), out var observable))
+			window.Canvas.sortingOrder = StartCanvasSortingOrder + _openedWindows.Count;
+
+			var overlappedWindow = _openedWindows.LastOrDefault();
+			_openedWindows.Add(window);
+
+			if (window.IsActive())
 			{
-				observable = _openedWindows.ObserveCountChanged().Select(i => GetOpenedWindowsCount<T>())
-					.DistinctUntilChanged().ToReadOnlyReactiveProperty(GetOpenedWindowsCount<T>());
-				_countObservables.Add(typeof(T), observable);
+				Debug.LogError("Window must be inactive in initial time.");
 			}
-
-			return observable;
-		}
-
-		// \IWindowManager
-
-		private RectTransform CreateModalBlend()
-		{
-			Transform transform;
-			var blend = Container.InstantiateComponentOnNewGameObject<ModalBlendController>("ModalBlend");
-			(transform = blend.transform).SetParent(FindOrCreatePopupCanvas(), false);
-			return transform as RectTransform;
-		}
-
-		private static RectTransform FindOrCreatePopupCanvas()
-		{
-			var instance = GameObject.FindGameObjectsWithTag("Popup").FirstOrDefault(o =>
-				o.name == "PopupCanvas" && o.GetComponent<Canvas>());
-			if (instance == null)
+			else if (!window.IsActiveOrActivated())
 			{
-				instance = new GameObject("PopupCanvas", typeof(Canvas), typeof(CanvasScaler),
-					typeof(GraphicRaycaster)) {tag = "Popup"};
-
-				var canvas = instance.GetComponent<Canvas>();
-				canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-				canvas.sortingOrder = 1000;
-
-				var canvasScaler = instance.GetComponent<CanvasScaler>();
-				canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-				canvasScaler.referenceResolution = WindowConst.TargetDestination;
-				canvasScaler.matchWidthOrHeight = 1;
-
-				var graphicRaycaster = instance.GetComponent<GraphicRaycaster>();
-				graphicRaycaster.blockingObjects = GraphicRaycaster.BlockingObjects.All;
+				window.Activate();
 			}
 
-			return (RectTransform) instance.transform;
+			if (overlap && overlappedWindow != null && overlappedWindow.IsActiveOrActivated())
+			{
+				overlappedWindow.Deactivate();
+			}
+
+			WindowOpenedEvent?.Invoke(window);
 		}
 
-		private void ListenForCloseWindow(IWindow window)
+		protected virtual void InitWindow(IWindow window, object[] args)
 		{
-			UnityAction handler = () => { CloseWindow(window); };
-			window.CloseEvent.AddListener(handler);
-			_closeHandlers.Add(window, handler);
+			window.SetArgs(args);
 		}
+
+		private void OnCloseWindow(IWindowResult result)
+		{
+			result.Window.CloseWindowEvent -= OnCloseWindow;
+			result.Window.DestroyWindowEvent -= OnDestroyWindow;
+
+			var index = _openedWindows.IndexOf(result.Window);
+			var overlappedWindow = index > 0 ? _openedWindows.ElementAt(index - 1) : null;
+			_openedWindows.Remove(result.Window);
+
+			if (result.Window.IsInactiveOrDeactivated())
+			{
+				Destroy(result.Window.Canvas.gameObject);
+			}
+			else
+			{
+				result.Window.ActivatableStateChangedEvent += OnWindowDeactivateHandler;
+			}
+
+			if (overlappedWindow != null && overlappedWindow.IsInactiveOrDeactivated())
+			{
+				overlappedWindow.Activate();
+			}
+
+			_isUnique = false;
+			WindowClosedEvent?.Invoke(result);
+
+			_delayedWindows.ToList().ForEach(call =>
+			{
+				if (_isUnique || call.IsUnique && _openedWindows.Count > 0) return;
+
+				_delayedWindows.Remove(call);
+
+				call.Window.Canvas.gameObject.SetActive(true);
+				DoApplyWindow(call.Window, call.IsUnique, call.Overlap);
+			});
+		}
+
+		private static void OnWindowDeactivateHandler(IActivatable activatable, ActivatableState state)
+		{
+			if (state != ActivatableState.Inactive) return;
+			activatable.ActivatableStateChangedEvent -= OnWindowDeactivateHandler;
+			Destroy(((IWindow) activatable).Canvas.gameObject);
+		}
+
+		private void OnDestroyWindow(IWindowResult result)
+		{
+			Debug.LogWarningFormat("Window {0} was destroyed outside of Close() method.", result.Window.WindowId);
+			OnCloseWindow(result);
+		}
+
+#if UNITY_EDITOR
+		[MenuItem("Tools/Game Settings/Window Manager")]
+		private static void FindAndSelectWindowManager()
+		{
+			var instance = Resources.FindObjectsOfTypeAll<WindowManagerBase>().FirstOrDefault();
+			if (!instance)
+			{
+				LoadAllPrefabs();
+				instance = Resources.FindObjectsOfTypeAll<WindowManagerBase>().FirstOrDefault();
+			}
+
+			if (instance)
+			{
+				Selection.activeObject = instance;
+				return;
+			}
+
+			Debug.LogError("Can't find prefab of WindowManager.");
+		}
+
+		private static void LoadAllPrefabs()
+		{
+			Directory.GetDirectories(Application.dataPath, @"Resources", SearchOption.AllDirectories)
+				.Select(s => Directory.GetFiles(s, @"*.prefab", SearchOption.TopDirectoryOnly))
+				.SelectMany(strings => strings.Select(Path.GetFileNameWithoutExtension))
+				.Distinct().ToList().ForEach(s => Resources.LoadAll(s));
+		}
+#endif
 	}
 }
