@@ -9,7 +9,7 @@
     "com.unity.purchasing": "2.0.6",
     "com.unity.textmeshpro": "2.0.1",
     "com.unity.timeline": "1.0.0",
-    "io.ambidexter.activatable": "https://github.com/ambidexter-unity/Activatable.git#2.0.0",
+    "io.ambidexter.logicality": "https://github.com/ambidexter-unity/Logicality.git#1.0.0",
     "io.ambidexter.touchhelper": "https://github.com/ambidexter-unity/TouchHelper.git#1.1.0",
     "com.unity.modules.ai": "1.0.0",
     "com.unity.modules.animation": "1.0.0",
@@ -59,9 +59,9 @@
     }
   ],
   "lock": {
-    "io.ambidexter.activatable": {
-      "hash": "ca066102626f45f0694c96ec0f2b025ca77d4fac",
-      "revision": "2.0.0"
+    "io.ambidexter.logicality": {
+      "hash": "0a5df1954199519f240fee2bc926c5164b11e88a",
+      "revision": "1.0.0"
     },
     "io.ambidexter.touchhelper": {
       "hash": "f12f5d88c02a0cf9da344d14f231d7cd7b57ad50",
