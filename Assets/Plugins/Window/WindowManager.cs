@@ -165,6 +165,29 @@ namespace Common.WindowManager
 			return window;
 		}
 
+		public bool RegisterWindow(Window windowPrefab, bool overrideExisting = false)
+		{
+			var windowId = windowPrefab.WindowId;
+			if (_windowsMap.ContainsKey(windowId))
+			{
+				if (!overrideExisting) return false;
+
+				CloseAll(windowId);
+				_windowsMap[windowId] = windowPrefab;
+			}
+			else
+			{
+				_windowsMap.Add(windowId, windowPrefab);
+			}
+
+			return true;
+		}
+
+		public bool UnregisterWindow(string windowId)
+		{
+			return _windowsMap.Remove(windowId);
+		}
+
 		private void OnDestroyScene()
 		{
 			_delayedWindows.Clear();
