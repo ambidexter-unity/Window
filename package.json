@@ -6,6 +6,6 @@
   "description": "Window and popup package",
   "dependencies": {
     "io.ambidexter.logicality": "https://github.com/ambidexter-unity/Logicality.git#1.0.0",
-    "io.ambidexter.touchhelper": "https://github.com/ambidexter-unity/TouchHelper.git#1.1.0"
+    "io.ambidexter.extensions": "https://github.com/ambidexter-unity/Extensions.git#1.0.2"
   }
 }

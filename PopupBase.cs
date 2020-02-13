@@ -1,3 +1,4 @@
+using Extensions;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -39,12 +40,12 @@ namespace Common.WindowManager
 
 		protected virtual void Start()
 		{
-			_lockId = TouchHelper.TouchHelper.Lock();
+			_lockId = TouchHelper.Lock();
 		}
 
 		protected override void OnDestroy()
 		{
-			TouchHelper.TouchHelper.Unlock(_lockId);
+			TouchHelper.Unlock(_lockId);
 			base.OnDestroy();
 		}
 	}
