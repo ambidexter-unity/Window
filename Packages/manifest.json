@@ -9,8 +9,8 @@
     "com.unity.purchasing": "2.0.6",
     "com.unity.textmeshpro": "2.0.1",
     "com.unity.timeline": "1.0.0",
+    "io.ambidexter.extensions": "https://github.com/ambidexter-unity/Extensions.git#1.0.2",
     "io.ambidexter.logicality": "https://github.com/ambidexter-unity/Logicality.git#1.0.0",
-    "io.ambidexter.touchhelper": "https://github.com/ambidexter-unity/TouchHelper.git#1.1.0",
     "com.unity.modules.ai": "1.0.0",
     "com.unity.modules.animation": "1.0.0",
     "com.unity.modules.assetbundle": "1.0.0",
@@ -63,9 +63,9 @@
       "hash": "0a5df1954199519f240fee2bc926c5164b11e88a",
       "revision": "1.0.0"
     },
-    "io.ambidexter.touchhelper": {
-      "hash": "f12f5d88c02a0cf9da344d14f231d7cd7b57ad50",
-      "revision": "1.1.0"
+    "io.ambidexter.extensions": {
+      "hash": "70755b55dca4af190870684e12aacd75e8ba7924",
+      "revision": "1.0.2"
     }
   }
 }

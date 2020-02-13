@@ -1,8 +1,8 @@
 {
     "name": "io.ambidexter.window",
     "references": [
-        "GUID:6ef204af4b591417786dc173dafecfbd",
-        "GUID:73ab25c7c953632449e54f2ac52df88f"
+        "GUID:73ab25c7c953632449e54f2ac52df88f",
+        "GUID:bc2bbdb10f84641ee8cbf977b8a446cb"
     ],
     "optionalUnityReferences": [],
     "includePlatforms": [],
