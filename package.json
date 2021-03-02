@@ -1,7 +1,7 @@
 {
   "name": "io.ambidexter.window",
   "displayName": "Window and popup package",
-  "version": "2.0.0",
+  "version": "2.0.2",
   "unity": "2019.1",
   "description": "Window and popup package",
   "dependencies": {

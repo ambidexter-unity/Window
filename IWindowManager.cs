@@ -20,6 +20,17 @@ namespace Common.WindowManager
 		IWindow ShowWindow(string windowId, object[] args = null, bool isUnique = false, bool overlap = false);
 
 		/// <summary>
+		/// Открыть окно принудительно.
+		/// </summary>
+		/// <param name="windowId">Идентификатор открываемого окна.</param>
+		/// <param name="args">Аргументы, передаваемые окну при открытии.</param>
+		/// <param name="isUnique">Флаг, указывающий на то, что окно должно быть показано эксклюзивно.</param>
+		/// <param name="overlap">Флаг, указывающий на то, что на время показа окна,
+		/// <returns>Возвращает ссылку на экземпляр созданного окна, или <code>null</code>,
+		/// если создание окна невозможно.</returns>
+		IWindow ForceShowWindow(string windowId, object[] args = null, bool isUnique = false, bool overlap = false);
+
+		/// <summary>
 		/// Закрыть все окна указанного типа.
 		/// </summary>
 		/// <param name="args">В качестве аргументов могут выступать классы закрываемых окон

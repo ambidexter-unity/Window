@@ -165,6 +165,34 @@ namespace Common.WindowManager
 			return window;
 		}
 
+		public IWindow ForceShowWindow(string windowId, object[] args = null, bool isUnique = false, bool overlap = false)
+		{
+			if (!_windowsMap.TryGetValue(windowId, out var prefab))
+			{
+				Debug.LogErrorFormat("Window with Id {0} isn't registered in Manager.", windowId);
+				return null;
+			}
+
+			if (!_sceneHelper)
+			{
+				_sceneHelper = new GameObject(@"WindowManagerLocalSceneHelper",
+						typeof(WindowManagerLocalSceneHelper))
+					.GetComponent<WindowManagerLocalSceneHelper>();
+				_sceneHelper.DestroyEvent.AddListener(OnDestroyScene);
+			}
+
+			var instance = Instantiate(prefab, Vector3.zero, Quaternion.identity);
+			instance.name = windowId;
+
+			var window = instance.GetComponent<IWindow>();
+			Assert.IsNotNull(window, "Window prefab must implements IWindow.");
+
+			InitWindow(window, args ?? new object[0]);
+			DoApplyWindow(window, isUnique, overlap);
+			
+			return window;
+		}
+
 		public bool RegisterWindow(Window windowPrefab, bool overrideExisting = false)
 		{
 			var windowId = windowPrefab.WindowId;
